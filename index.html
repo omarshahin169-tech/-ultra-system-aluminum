@@ -68,7 +68,7 @@ details summary{cursor:pointer;font-weight:700;color:var(--mut);font-size:13px;p
 .doc table{font-size:12px}
 .doc th{background:#3A3D44}
 .doc .info{display:grid;grid-template-columns:1fr 1fr;gap:4px 20px;font-size:13px;margin-bottom:10px}
-.doc .totbox{margin-top:10px;margin-right:auto;width:280px;border:2px solid var(--dark);border-radius:6px;overflow:hidden}
+.doc .totbox{margin-top:10px;margin-right:auto;width:300px;border:2px solid var(--dark);border-radius:6px;overflow:hidden}
 .doc .totbox div{display:flex;justify-content:space-between;padding:6px 10px;font-size:13px}
 .doc .totbox .g{background:var(--gold);font-weight:800;font-size:15px}
 .doc .ft{margin-top:18px;font-size:11.5px;color:#444;border-top:1px solid #ccc;padding-top:6px}
@@ -253,8 +253,9 @@ function calcProject(P){
   const O=P.aluMode==='bars'?optimizeProject(P):null, FX=O?O.factors:null;
   const res=P.windows.map(w=>({win:w,c:calcWindow(w,P,FX)}));
   const sum=res.reduce((s,x)=>s+x.c.total,0);
-  const disc=+P.discount||0;
-  return {O,FX,res,sum,disc,net:sum-disc,area:res.reduce((s,x)=>s+x.c.area*x.c.qty,0),weight:res.reduce((s,x)=>s+x.c.weight*x.c.qty,0)};
+  const disc=+P.discount||0, adds=(P.adds||[]).filter(a=>+a.amount), addSum=adds.reduce((s,a)=>s+(+a.amount),0);
+  const before=sum+addSum-disc, taxPct=+P.taxPct||0, tax=before*taxPct/100;
+  return {O,FX,res,sum,disc,adds,addSum,before,taxPct,tax,net:before+tax,count:res.reduce((s,x)=>s+x.c.qty,0),area:res.reduce((s,x)=>s+x.c.area*x.c.qty,0),weight:res.reduce((s,x)=>s+x.c.weight*x.c.qty,0)};
 }
 function winTitle(w,i){return (w.name||('شباك '+(i+1)))}
 function winDesc(w){return `${w.type||'شباك'} جرار ${w.leaves} ضلفة – ${f2(+w.w)} × ${f2(+w.h)} م`+(w.mesh?' – سلك':'')+(w.track?' – مجرى سلك إضافي':'')+(w.fix?` – ثابت ${f2(+w.fixH)} م`:'')}
@@ -328,7 +329,7 @@ function vProj(){
     ${inp('سعر متر الزجاج','glassPrice','number','step="any"')}
     ${inp('المصنعية %','laborPct','number','step="any"')}
     ${inp('سعر الدهان / كيلو','paintRate','number','step="any"')}
-    ${inp('خصم (جنيه)','discount','number','step="any"')}
+
     <div><label>تكلفة الألومنيوم في السعر</label><select onchange="setP('aluMode',this.value);render()"><option value="waste" ${P.aluMode!=='bars'?'selected':''}>الوزن + هالك ${P.waste}%</option><option value="bars" ${P.aluMode==='bars'?'selected':''}>حسب الأعواد الفعلية بعد تحسين القص</option></select></div>
    </div>
    <p class="hint">أسعار الإكسسوار وأوزان القطاعات بتتاخد من قائمة الأسعار. لو غيّرت القائمة اضغط: <button class="btn ghost sm" onclick="refreshCat()">تحديث المشروع بأسعار القائمة الحالية</button></p>
@@ -336,6 +337,13 @@ function vProj(){
   <div class="card"><h3>الشبابيك والأبواب <span class="pill">${P.windows.length}</span></h3>
    ${C.res.map((x,i)=>winCard(x,i)).join('')||'<p class="hint">لسه مفيش شبابيك. اضغط "إضافة شباك / باب".</p>'}
    <div class="row" style="margin-top:8px"><button class="btn" onclick="editWin(-1)">+ إضافة شباك / باب</button></div>
+  </div>
+  <div class="card"><h3>الإجمالي النهائي (اختياري)</h3>
+   <div class="grid">${inp('خصم (جنيه)','discount','number','step="any" placeholder="0"')}${inp('الضريبة %','taxPct','number','step="any" placeholder="0"')}</div>
+   <label style="margin-top:10px">إضافات يدوية (نقل، تركيب، أي حاجة زيادة)</label>
+   ${(P.adds||[]).map((a,i)=>`<div class="row" style="margin-bottom:6px;flex-wrap:nowrap"><input style="flex:2" placeholder="البيان" value="${esc(a.label)}" oninput="DB.cur.adds[${i}].label=this.value;save()"><input style="flex:1" type="number" step="any" placeholder="المبلغ" value="${esc(a.amount)}" oninput="DB.cur.adds[${i}].amount=this.value;save();refreshTotals()"><button class="btn red sm" onclick="DB.cur.adds.splice(${i},1);save();render()">✕</button></div>`).join('')}
+   <button class="btn ghost sm" onclick="(DB.cur.adds=DB.cur.adds||[]).push({label:'',amount:''});save();render()">+ إضافة بند</button>
+   <label style="margin-top:10px">ملاحظات تظهر في عرض السعر</label><textarea rows="2" oninput="setP('notes',this.value)">${esc(P.notes)}</textarea>
   </div>
   <div class="card" id="totals">${totalsHtml(C)}</div>
   <div class="row"><button class="btn dark" onclick="saveProject()">💾 حفظ المشروع</button><button class="btn ghost" onclick="newProj()">مشروع جديد</button></div>`;
@@ -355,10 +363,13 @@ function winCard(x,i){const w=x.win,c=x.c,P=DB.cur;
    ${row('الإكسسوارات',`<details><summary style="padding:0">${c.accs.length} صنف – ${f0(c.accCost)} ج</summary>${c.accs.map(a=>`${esc(a.name)} <span class="num">${f2(a.q)}</span>${a.unit==='m'?' م':a.unit==='m2'?' م²':''}`).join(' ، ')}</details>`)}
    ${row('السعر',`<b>${f0(c.unit)} ج</b> للوحدة${c.qty>1?` – الإجمالي <b>${f0(c.total)} ج</b>`:''}`)}</table></div>`}
 function totalsHtml(C){return `<h3>الإجمالي</h3><div class="kpi">
-  <div><small>عدد الشبابيك</small><b>${C.res.reduce((s,x)=>s+x.c.qty,0)}</b></div>
+  <div><small>عدد الشبابيك</small><b>${C.count}</b></div>
   <div><small>إجمالي الأمتار</small><b>${f2(C.area)} م²</b></div>
   <div><small>وزن الألومنيوم</small><b>${f2(C.weight)} كجم</b></div>
-  <div><small>الإجمالي قبل الخصم</small><b>${f0(C.sum)} ج</b></div>
+  <div><small>إجمالي الشبابيك</small><b>${f0(C.sum)} ج</b></div>
+  ${C.addSum?`<div><small>إضافات</small><b>+ ${f0(C.addSum)} ج</b></div>`:''}
+  ${C.disc?`<div><small>خصم</small><b>− ${f0(C.disc)} ج</b></div>`:''}
+  ${C.taxPct?`<div><small>ضريبة ${f2(C.taxPct)}%</small><b>+ ${f0(C.tax)} ج</b></div>`:''}
   <div style="background:#FFF6DC"><small>الصافي</small><b class="big">${f0(C.net)} ج</b></div></div>`}
 function refreshTotals(){const el=$('#totals');if(el)el.innerHTML=totalsHtml(calcProject(DB.cur))}
 function refreshCat(){DB.cur.cat=clone(DB.catalog);DB.cur.waste=DB.settings.waste;DB.cur.accWaste=DB.settings.accWaste;DB.cur.glassWaste=DB.settings.glassWaste;save();render();toast('تم تحديث الأسعار')}
@@ -490,11 +501,17 @@ function quoteDoc(P){
   const C=calcProject(P),co=DB.settings.company;
   return `<div class="doc">${docHead('عرض سعر',P)}
   <div class="info"><div><b>السيد/ة:</b> ${esc(P.client)}</div><div><b>تليفون:</b> <span class="num">${esc(P.phone)}</span></div><div><b>العنوان:</b> ${esc(P.address)}</div><div><b>القطاع:</b> ${SYS_NAME}</div>
-  ${P.color?`<div><b>اللون:</b> ${esc(P.color)}</div>`:''}${P.glassName?`<div><b>الزجاج:</b> ${esc(P.glassName)}</div>`:''}</div>
-  <table><tr><th>م</th><th>البيان</th><th>المقاس (م)</th><th>العدد</th><th>سعر الوحدة</th><th>الإجمالي</th></tr>
-  ${C.res.map((x,i)=>`<tr><td>${i+1}</td><td>${esc(winTitle(x.win,i))}<br><span style="font-size:11px;color:#555">${esc(x.win.type||'شباك')} جرار ${x.win.leaves} ضلفة${x.win.mesh?' + سلك':''}${x.win.fix?' + جزء ثابت':''}${x.win.color?' – '+esc(x.win.color):''}${x.win.glassName?' – زجاج '+esc(x.win.glassName):''}</span></td><td class="num">${f2(+x.win.w)} × ${f2(+x.win.h)}</td><td>${x.c.qty}</td><td class="num">${f0(x.c.unit)}</td><td class="num">${f0(x.c.total)}</td></tr>`).join('')}
+  ${P.color||P.colorCode?`<div><b>اللون:</b> ${esc(P.color)}${P.colorCode?' – كود <span class="num">'+esc(P.colorCode)+'</span>':''}</div>`:''}${P.glassName?`<div><b>الزجاج:</b> ${esc(P.glassName)}</div>`:''}</div>
+  <table><tr><th>م</th><th>البيان</th><th>المقاس (م)</th><th>العدد</th><th>المساحة م²</th><th>سعر الوحدة</th><th>الإجمالي</th></tr>
+  ${C.res.map((x,i)=>`<tr><td>${i+1}</td><td>${esc(winTitle(x.win,i))}<br><span style="font-size:11px;color:#555">${esc(x.win.type||'شباك')} جرار ${x.win.leaves} ضلفة${x.win.mesh?' + سلك':''}${x.win.fix?' + جزء ثابت':''}${x.win.color||x.win.colorCode?' – لون '+esc(x.win.color||P.color)+(x.win.colorCode?' ('+esc(x.win.colorCode)+')':''):''}${x.win.glassName?' – زجاج '+esc(x.win.glassName):''}</span></td><td class="num">${f2(+x.win.w)} × ${f2(+x.win.h)}</td><td>${x.c.qty}</td><td class="num">${f2(x.c.area*x.c.qty)}</td><td class="num">${f0(x.c.unit)}</td><td class="num">${f0(x.c.total)}</td></tr>`).join('')}
+  <tr class="tot"><td colspan="3">الإجمالي</td><td>${C.count}</td><td class="num">${f2(C.area)}</td><td></td><td class="num">${f0(C.sum)}</td></tr>
   </table>
-  <div class="totbox"><div><span>الإجمالي</span><span class="num">${f0(C.sum)} ج</span></div>${C.disc?`<div><span>خصم</span><span class="num">${f0(C.disc)} ج</span></div>`:''}<div class="g"><span>الصافي</span><span class="num">${f0(C.net)} ج</span></div></div>
+  <div class="totbox"><div><span>إجمالي عدد الشبابيك</span><span class="num">${C.count}</span></div><div><span>إجمالي الأمتار</span><span class="num">${f2(C.area)} م²</span></div>
+  <div><span>إجمالي المبلغ</span><span class="num">${f0(C.sum)} ج</span></div>
+  ${C.adds.map(a=>`<div><span>${esc(a.label||'إضافات')}</span><span class="num">+ ${f0(+a.amount)} ج</span></div>`).join('')}
+  ${C.disc?`<div><span>خصم</span><span class="num">− ${f0(C.disc)} ج</span></div>`:''}
+  ${C.taxPct?`<div><span>ضريبة ${f2(C.taxPct)}%</span><span class="num">+ ${f0(C.tax)} ج</span></div>`:''}
+  <div class="g"><span>الصافي</span><span class="num">${f0(C.net)} ج</span></div></div>
   ${P.notes?`<p style="font-size:13px"><b>ملاحظات:</b> ${esc(P.notes)}</p>`:''}
   <div class="ft">${esc(co.terms).replace(/\n/g,'<br>')}<br>${co.phone?'📞 <span class="num">'+esc(co.phone)+'</span>':''} ${co.address?' – '+esc(co.address):''}</div></div>`;
 }
