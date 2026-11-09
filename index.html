@@ -253,9 +253,10 @@ function calcProject(P){
   const O=P.aluMode==='bars'?optimizeProject(P):null, FX=O?O.factors:null;
   const res=P.windows.map(w=>({win:w,c:calcWindow(w,P,FX)}));
   const sum=res.reduce((s,x)=>s+x.c.total,0);
-  const disc=+P.discount||0, adds=(P.adds||[]).filter(a=>+a.amount), addSum=adds.reduce((s,a)=>s+(+a.amount),0);
-  const before=sum+addSum-disc, taxPct=+P.taxPct||0, tax=before*taxPct/100;
-  return {O,FX,res,sum,disc,adds,addSum,before,taxPct,tax,net:before+tax,count:res.reduce((s,x)=>s+x.c.qty,0),area:res.reduce((s,x)=>s+x.c.area*x.c.qty,0),weight:res.reduce((s,x)=>s+x.c.weight*x.c.qty,0)};
+  const adds=(P.adds||[]).filter(a=>+a.amount), addSum=adds.reduce((s,a)=>s+(+a.amount),0);
+  const gross=sum+addSum, discPct=+P.discPct||0, disc=gross*discPct/100;
+  const before=gross-disc, taxPct=+P.taxPct||0, tax=before*taxPct/100;
+  return {O,FX,res,sum,disc,discPct,gross,adds,addSum,before,taxPct,tax,net:before+tax,count:res.reduce((s,x)=>s+x.c.qty,0),area:res.reduce((s,x)=>s+x.c.area*x.c.qty,0),weight:res.reduce((s,x)=>s+x.c.weight*x.c.qty,0)};
 }
 function winTitle(w,i){return (w.name||('شباك '+(i+1)))}
 function winDesc(w){return `${w.type||'شباك'} جرار ${w.leaves} ضلفة – ${f2(+w.w)} × ${f2(+w.h)} م`+(w.mesh?' – سلك':'')+(w.track?' – مجرى سلك إضافي':'')+(w.fix?` – ثابت ${f2(+w.fixH)} م`:'')}
@@ -339,7 +340,7 @@ function vProj(){
    <div class="row" style="margin-top:8px"><button class="btn" onclick="editWin(-1)">+ إضافة شباك / باب</button></div>
   </div>
   <div class="card"><h3>الإجمالي النهائي (اختياري)</h3>
-   <div class="grid">${inp('خصم (جنيه)','discount','number','step="any" placeholder="0"')}${inp('الضريبة %','taxPct','number','step="any" placeholder="0"')}</div>
+   <div class="grid">${inp('الخصم %','discPct','number','step="any" placeholder="0"')}${inp('الضريبة %','taxPct','number','step="any" placeholder="0"')}</div>
    <label style="margin-top:10px">إضافات يدوية (نقل، تركيب، أي حاجة زيادة)</label>
    ${(P.adds||[]).map((a,i)=>`<div class="row" style="margin-bottom:6px;flex-wrap:nowrap"><input style="flex:2" placeholder="البيان" value="${esc(a.label)}" oninput="DB.cur.adds[${i}].label=this.value;save()"><input style="flex:1" type="number" step="any" placeholder="المبلغ" value="${esc(a.amount)}" oninput="DB.cur.adds[${i}].amount=this.value;save();refreshTotals()"><button class="btn red sm" onclick="DB.cur.adds.splice(${i},1);save();render()">✕</button></div>`).join('')}
    <button class="btn ghost sm" onclick="(DB.cur.adds=DB.cur.adds||[]).push({label:'',amount:''});save();render()">+ إضافة بند</button>
@@ -368,7 +369,7 @@ function totalsHtml(C){return `<h3>الإجمالي</h3><div class="kpi">
   <div><small>وزن الألومنيوم</small><b>${f2(C.weight)} كجم</b></div>
   <div><small>إجمالي الشبابيك</small><b>${f0(C.sum)} ج</b></div>
   ${C.addSum?`<div><small>إضافات</small><b>+ ${f0(C.addSum)} ج</b></div>`:''}
-  ${C.disc?`<div><small>خصم</small><b>− ${f0(C.disc)} ج</b></div>`:''}
+  ${C.disc?`<div><small>خصم ${f2(C.discPct)}%</small><b>− ${f0(C.disc)} ج</b></div>`:''}
   ${C.taxPct?`<div><small>ضريبة ${f2(C.taxPct)}%</small><b>+ ${f0(C.tax)} ج</b></div>`:''}
   <div style="background:#FFF6DC"><small>الصافي</small><b class="big">${f0(C.net)} ج</b></div></div>`}
 function refreshTotals(){const el=$('#totals');if(el)el.innerHTML=totalsHtml(calcProject(DB.cur))}
@@ -504,12 +505,13 @@ function quoteDoc(P){
   ${P.color||P.colorCode?`<div><b>اللون:</b> ${esc(P.color)}${P.colorCode?' – كود <span class="num">'+esc(P.colorCode)+'</span>':''}</div>`:''}${P.glassName?`<div><b>الزجاج:</b> ${esc(P.glassName)}</div>`:''}</div>
   <table><tr><th>م</th><th>البيان</th><th>المقاس (م)</th><th>العدد</th><th>المساحة م²</th><th>سعر الوحدة</th><th>الإجمالي</th></tr>
   ${C.res.map((x,i)=>`<tr><td>${i+1}</td><td>${esc(winTitle(x.win,i))}<br><span style="font-size:11px;color:#555">${esc(x.win.type||'شباك')} جرار ${x.win.leaves} ضلفة${x.win.mesh?' + سلك':''}${x.win.fix?' + جزء ثابت':''}${x.win.color||x.win.colorCode?' – لون '+esc(x.win.color||P.color)+(x.win.colorCode?' ('+esc(x.win.colorCode)+')':''):''}${x.win.glassName?' – زجاج '+esc(x.win.glassName):''}</span></td><td class="num">${f2(+x.win.w)} × ${f2(+x.win.h)}</td><td>${x.c.qty}</td><td class="num">${f2(x.c.area*x.c.qty)}</td><td class="num">${f0(x.c.unit)}</td><td class="num">${f0(x.c.total)}</td></tr>`).join('')}
-  <tr class="tot"><td colspan="3">الإجمالي</td><td>${C.count}</td><td class="num">${f2(C.area)}</td><td></td><td class="num">${f0(C.sum)}</td></tr>
+  <tr class="tot"><td colspan="3">إجمالي الشبابيك</td><td>${C.count}</td><td class="num">${f2(C.area)}</td><td></td><td class="num">${f0(C.sum)}</td></tr>
+  ${C.adds.length?`<tr class="grp"><td colspan="7">إضافات</td></tr>${C.adds.map((a,j)=>`<tr><td>${C.res.length+j+1}</td><td colspan="5">${esc(a.label||'إضافة')}</td><td class="num">${f0(+a.amount)}</td></tr>`).join('')}`:''}
   </table>
   <div class="totbox"><div><span>إجمالي عدد الشبابيك</span><span class="num">${C.count}</span></div><div><span>إجمالي الأمتار</span><span class="num">${f2(C.area)} م²</span></div>
-  <div><span>إجمالي المبلغ</span><span class="num">${f0(C.sum)} ج</span></div>
-  ${C.adds.map(a=>`<div><span>${esc(a.label||'إضافات')}</span><span class="num">+ ${f0(+a.amount)} ج</span></div>`).join('')}
-  ${C.disc?`<div><span>خصم</span><span class="num">− ${f0(C.disc)} ج</span></div>`:''}
+  <div><span>إجمالي الشبابيك</span><span class="num">${f0(C.sum)} ج</span></div>
+  ${C.addSum?`<div><span>إجمالي الإضافات</span><span class="num">+ ${f0(C.addSum)} ج</span></div><div><span><b>الإجمالي</b></span><span class="num"><b>${f0(C.gross)} ج</b></span></div>`:''}
+  ${C.disc?`<div><span>خصم ${f2(C.discPct)}%</span><span class="num">− ${f0(C.disc)} ج</span></div>`:''}
   ${C.taxPct?`<div><span>ضريبة ${f2(C.taxPct)}%</span><span class="num">+ ${f0(C.tax)} ج</span></div>`:''}
   <div class="g"><span>الصافي</span><span class="num">${f0(C.net)} ج</span></div></div>
   ${P.notes?`<p style="font-size:13px"><b>ملاحظات:</b> ${esc(P.notes)}</p>`:''}
