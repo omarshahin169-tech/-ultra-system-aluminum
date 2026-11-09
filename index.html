@@ -240,37 +240,40 @@ const LIN=(kw,kh,kht,kf)=>({kw,kh,kht:kht||0,kf:kf||0});
 const MESH_ACC=[A('mesh','b15',{kwh:1})];
 const FIX_ACC=[A('fix','b5',LIN(2,0,0,2))];
 const T=(id,name,leaves,rules,acc,opt)=>Object.assign({id,name,leaves,rules,accRules:acc,meshDef:true},opt||{});
+const HNG={hinge:1,hMax:100,nLow:2,nHigh:3};   // مفصلات: 2 لكل ضلفة لو ارتفاعها متر أو أقل، 3 لو أكتر
+const SK=p=>({ofP:p,k:1});                      // كاوتش ضلفة = إجمالي أطوال قطاع الضلفة
+const FRAME_G=LIN(2,0,2);                       // كاوتش بطول الحلق = 2 عرض + 2 ارتفاع كلي
 const DEF_SYS940={id:'940',name:'M940',types:[
  T('h1','مفصلي 1 ضلفة',1,hinged({frame:'q2',sash:'q3',bead:'q6',sas:'q8',leaves:1}),
-   [A('base','b1',4),A('base','b2',4),A('base','b3',3),A('base','b4',LIN(2,2)),A('base','b5',LIN(4,4)),A('base','b6',LIN(2,0,2)),A('base','b7',1),A('base','b8',1),A('base','b9',4),A('base','b14',1)].concat(MESH_ACC,FIX_ACC)),
+   [A('base','b1',4),A('base','b2',4),A('base','b3',HNG),A('base','b4',FRAME_G),A('base','b5',SK('q3')),A('base','b6',FRAME_G),A('base','b7',1),A('base','b8',1),A('base','b9',4),A('base','b14',1)].concat(MESH_ACC,FIX_ACC)),
  T('h2','مفصلي 2 ضلفة',2,hinged({frame:'q2',sash:'q3',bead:'q6',mull:'q7',sas:'q8',leaves:2}),
-   [A('base','b1',4),A('base','b2',8),A('base','b3',6),A('base','b4',LIN(2,2)),A('base','b5',LIN(4,4)),A('base','b6',LIN(2,0,2)),A('base','b7',1),A('base','b8',1),A('base','b9',4),A('base','b10',1),A('base','b14',1)].concat(MESH_ACC,FIX_ACC)),
+   [A('base','b1',4),A('base','b2',8),A('base','b3',HNG),A('base','b4',FRAME_G),A('base','b5',SK('q3')),A('base','b6',FRAME_G),A('base','b7',1),A('base','b8',1),A('base','b9',4),A('base','b10',1),A('base','b14',1)].concat(MESH_ACC,FIX_ACC)),
  T('tl','قلاب',1,hinged({frame:'q2',sash:'q4',bead:'q6',sas:'q8',leaves:1,beadOnSash:false}),
-   [A('base','b1',8),A('base','b4',LIN(2,2)),A('base','b5',LIN(4,4)),A('base','b6',LIN(2,0,2)),A('base','b11',1),A('base','b12',1),A('base','b9',4),A('base','b13',4),A('base','b14',1)].concat(MESH_ACC,FIX_ACC)),
- T('ht','مفصلي قلاب',1,hinged({frame:'q2',sash:'q3',bead:'q6',sas:'q8',leaves:1,sashW:['W',4],sashH:[4]}),
-   [A('base','b1',4),A('base','b2',4),A('base','b4',LIN(2,2)),A('base','b5',LIN(4,4)),A('base','b6',LIN(2,0,2)),A('base','b9',4),A('base','b14',1)].concat(MESH_ACC,FIX_ACC)),
- T('d1','ضلفة داخل ضلفة – 1 ضلفة',1,hinged({frame:'q2',sash:'q3',inner:'q5',bead:'q6',sas:'q8',leaves:1}),
-   [A('base','b1',4),A('base','b2',8),A('base','b3',6),A('base','b4',LIN(2,2)),A('base','b5',LIN(8,8)),A('base','b6',LIN(2,0,2)),A('base','b7',2),A('base','b8',2),A('base','b9',4),A('base','b14',1)].concat(MESH_ACC,FIX_ACC)),
- T('d2','ضلفة داخل ضلفة – 2 ضلفة',2,hinged({frame:'q2',sash:'q3',inner:'q5',bead:'q6',mull:'q7',mullN:2,sas:'q8',leaves:2}),
-   [A('base','b1',4),A('base','b2',16),A('base','b3',12),A('base','b4',LIN(2,2)),A('base','b5',LIN(8,8)),A('base','b6',LIN(2,0,2)),A('base','b7',2),A('base','b8',2),A('base','b9',4),A('base','b10',1),A('base','b14',1)].concat(MESH_ACC,FIX_ACC)),
+   [A('base','b1',8),A('base','b4',FRAME_G),A('base','b5',SK('q4')),A('base','b6',FRAME_G),A('base','b11',1),A('base','b12',1),A('base','b9',4),A('base','b13',4),A('base','b14',1)].concat(MESH_ACC,FIX_ACC)),
+ T('ht','مفصلي قلاب',1,hinged({frame:'q2',sash:'q3',bead:'q6',sas:'q8',leaves:1}),
+   [A('base','b1',4),A('base','b2',4),A('base','b3',HNG),A('base','b4',FRAME_G),A('base','b5',SK('q3')),A('base','b6',FRAME_G),A('base','b9',4),A('base','b14',1)].concat(MESH_ACC,FIX_ACC)),
+ T('d1','ضلفة داخل ضلفة – 1 ضلفة',1,hinged({frame:'q2',sash:'q3',bead:'q6',sas:'q8',leaves:1}),
+   [A('base','b1',4),A('base','b2',8),A('base','b3',HNG),A('base','b4',FRAME_G),A('base','b5',SK('q3')),A('base','b6',FRAME_G),A('base','b7',2),A('base','b8',2),A('base','b9',4),A('base','b14',1)].concat(MESH_ACC,FIX_ACC)),
+ T('d2','ضلفة داخل ضلفة – 2 ضلفة',2,hinged({frame:'q2',sash:'q3',bead:'q6',mull:'q7',mullN:2,sas:'q8',leaves:2}),
+   [A('base','b1',4),A('base','b2',16),A('base','b3',HNG),A('base','b4',FRAME_G),A('base','b5',SK('q3')),A('base','b6',FRAME_G),A('base','b7',2),A('base','b8',2),A('base','b9',4),A('base','b10',1),A('base','b14',1)].concat(MESH_ACC,FIX_ACC)),
  T('fx','ثابت',0,hinged({frame:'q2',bead:'q6',leaves:0}),
-   [A('base','b1',4),A('base','b4',LIN(2,0,2)),A('base','b5',LIN(2,0,2)),A('base','b6',LIN(2,0,2)),A('base','b9',4),A('base','b14',1)],{meshDef:false})
+   [A('base','b1',4),A('base','b4',FRAME_G),A('base','b5',FRAME_G),A('base','b6',FRAME_G),A('base','b9',4),A('base','b14',1)],{meshDef:false})
 ]};
 const DEF_SYS9400={id:'9400',name:'M9400',types:[
  T('w1','شباك مفصلي 1 ضلفة',1,hinged({frame:'r1',sash:'r3',bead:'r4',sas:'p16',leaves:1}),
-   [A('base','c1',4),A('base','c2',4),A('base','b5',LIN(2,2)),A('base','b6',LIN(2,0,2)),A('base','c3',LIN(2,2)),A('base','b9',4),A('base','b13',4),A('base','b7',1),A('base','b8',1),A('base','b3',4),A('base','b14',1)].concat(MESH_ACC,FIX_ACC)),
+   [A('base','c1',4),A('base','c2',4),A('base','b5',SK('r3')),A('base','b6',FRAME_G),A('base','c3',FRAME_G),A('base','b9',4),A('base','b13',4),A('base','b7',1),A('base','b8',1),A('base','b3',HNG),A('base','b14',1)].concat(MESH_ACC,FIX_ACC)),
  T('w2','شباك مفصلي 2 ضلفة',2,hinged({frame:'r1',sash:'r3',bead:'r4',mull:'r6',sas:'p16',leaves:2}),
-   [A('base','c1',4),A('base','c2',8),A('base','b5',LIN(2,2)),A('base','b6',LIN(2,0,2)),A('base','c3',LIN(2,2)),A('base','b9',4),A('base','b13',8),A('base','b7',1),A('base','b8',1),A('base','b3',8),A('base','c4',1),A('base','b14',1)].concat(MESH_ACC,FIX_ACC)),
+   [A('base','c1',4),A('base','c2',8),A('base','b5',SK('r3')),A('base','b6',FRAME_G),A('base','c3',FRAME_G),A('base','b9',4),A('base','b13',8),A('base','b7',1),A('base','b8',1),A('base','b3',HNG),A('base','c4',1),A('base','b14',1)].concat(MESH_ACC,FIX_ACC)),
  T('dr1','باب 1 ضلفة',1,hinged({frame:'r1',sash:'r3',bead:'r4',sas:'p16',leaves:1}),
-   [A('base','c1',4),A('base','c2',4),A('base','b5',LIN(2,2)),A('base','b6',LIN(2,0,2)),A('base','c3',LIN(2,2)),A('base','b9',4),A('base','b13',4),A('base','c5',1),A('base','c6',1),A('base','c7',1),A('base','c8',3),A('base','b14',1)].concat(MESH_ACC,FIX_ACC),{meshDef:false,door:true}),
+   [A('base','c1',4),A('base','c2',4),A('base','b5',SK('r3')),A('base','b6',FRAME_G),A('base','c3',FRAME_G),A('base','b9',4),A('base','b13',4),A('base','c5',1),A('base','c6',1),A('base','c7',1),A('base','c8',3),A('base','b14',1)].concat(MESH_ACC,FIX_ACC),{meshDef:false,door:true}),
  T('dr2','باب 2 ضلفة',2,hinged({frame:'r1',sash:'r3',bead:'r4',mull:'r6',sas:'p16',leaves:2}),
-   [A('base','c1',4),A('base','c2',8),A('base','b5',LIN(2,2)),A('base','b6',LIN(2,0,2)),A('base','c3',LIN(2,2)),A('base','b9',4),A('base','b13',8),A('base','c5',1),A('base','c6',1),A('base','c7',1),A('base','c8',8),A('base','c4',1),A('base','b14',1)].concat(MESH_ACC,FIX_ACC),{meshDef:false,door:true}),
+   [A('base','c1',4),A('base','c2',8),A('base','b5',SK('r3')),A('base','b6',FRAME_G),A('base','c3',FRAME_G),A('base','b9',4),A('base','b13',8),A('base','c5',1),A('base','c6',1),A('base','c7',1),A('base','c8',8),A('base','c4',1),A('base','b14',1)].concat(MESH_ACC,FIX_ACC),{meshDef:false,door:true}),
  T('tl','قلاب حمامات',1,hinged({frame:'r1',sash:'r3',bead:'r4',sas:'p16',leaves:1}),
-   [A('base','c1',4),A('base','c2',4),A('base','b5',LIN(2,2)),A('base','b6',LIN(2,0,2)),A('base','c3',LIN(2,2)),A('base','b9',4),A('base','b13',8),A('base','c10',1),A('base','c9',1),A('base','b14',1)].concat(MESH_ACC,FIX_ACC)),
- T('ht','مفصلي قلاب',1,hinged({frame:'r1',sash:'r3',bead:'r4',sas:'p16',leaves:1,sashW:['W',4],sashH:[4]}),
-   [A('base','c1',4),A('base','c2',4),A('base','b5',LIN(4,4)),A('base','b6',LIN(2,0,2)),A('base','c3',LIN(2,2)),A('base','b9',4),A('base','b13',2),A('base','b7',2),A('base','b8',2),A('base','b3',4),A('base','b14',1)].concat(MESH_ACC,FIX_ACC)),
+   [A('base','c1',4),A('base','c2',4),A('base','b5',SK('r3')),A('base','b6',FRAME_G),A('base','c3',FRAME_G),A('base','b9',4),A('base','b13',8),A('base','c10',1),A('base','c9',1),A('base','b14',1)].concat(MESH_ACC,FIX_ACC)),
+ T('ht','مفصلي قلاب',1,hinged({frame:'r1',sash:'r3',bead:'r4',sas:'p16',leaves:1}),
+   [A('base','c1',4),A('base','c2',4),A('base','b5',SK('r3')),A('base','b6',FRAME_G),A('base','c3',FRAME_G),A('base','b9',4),A('base','b13',2),A('base','b7',2),A('base','b8',2),A('base','b3',HNG),A('base','b14',1)].concat(MESH_ACC,FIX_ACC)),
  T('fx','ثابت',0,hinged({frame:'r1',bead:'r4',leaves:0}),
-   [A('base','c1',4),A('base','b5',LIN(2,0,2)),A('base','b6',LIN(2,0,2)),A('base','b9',4),A('base','b14',1)],{meshDef:false})
+   [A('base','c1',4),A('base','b5',FRAME_G),A('base','b6',FRAME_G),A('base','b9',4),A('base','b14',1)],{meshDef:false})
 ]};
 function sys14600From(c){return {id:'14600',name:'M14600 جرار',types:[2,3,4].map(n=>({id:String(n),name:'جرار '+n+' ضلفة',leaves:n,meshDef:n!==3,fix14600:true,
   rules:clone((c.rules&&c.rules[n])||DEF_RULES[n]).concat(clone((c.rules&&c.rules.fix)||DEF_RULES.fix)),
@@ -295,12 +298,12 @@ function clone(o){return JSON.parse(JSON.stringify(o))}
 function freshCatalog(){return upgradeCat({profiles:clone(DEF_PROFILES),acc:clone(DEF_ACC),rules:clone(DEF_RULES),accRules:clone(DEF_ACC_RULES)})}
 function load(){
   try{DB=JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){DB=null}
-  if(!DB){DB={settings:clone(DEF_SETTINGS),catalog:freshCatalog(),projects:[],cur:null,seq:1,catVer:3}}
+  if(!DB){DB={settings:clone(DEF_SETTINGS),catalog:freshCatalog(),projects:[],cur:null,seq:1,catVer:4}}
   DB.settings=Object.assign(clone(DEF_SETTINGS),DB.settings||{});
   if(!DB.cur) DB.cur=newProject();
   migrate();
 }
-const CAT_VER=3;
+const CAT_VER=4;
 function patchCat(c){
   if(!c.rules) return;
   const acc=id=>c.acc.find(a=>a.id===id);
@@ -311,7 +314,7 @@ function patchCat(c){
   [[2,4],[3,6],[4,8]].forEach(([l,kh])=>{if(!c.accRules[l].some(r=>r.g==='base'&&r.a==='a27')) c.accRules[l].push({g:'base',a:'a27',kw:4,kh})});
 }
 function migrate(){
-  if((DB.catVer||1)<CAT_VER){[DB.catalog,DB.cur&&DB.cur.cat].forEach(c=>{if(!c)return;if((DB.catVer||1)<2)patchCat(c);upgradeCat(c)}); DB.catVer=CAT_VER; save();}
+  if((DB.catVer||1)<CAT_VER){[DB.catalog,DB.cur&&DB.cur.cat].forEach(c=>{if(!c)return;if((DB.catVer||1)<2)patchCat(c);upgradeCat(c);if((DB.catVer||1)<4){c.systems=c.systems.map(x=>x.id==='940'?clone(DEF_SYS940):x.id==='9400'?clone(DEF_SYS9400):x)}}); DB.catVer=CAT_VER; save();}
 }
 function save(){try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){toast('تعذر الحفظ على هذا الجهاز')}}
 function uid(){return Math.random().toString(36).slice(2,9)}
@@ -344,7 +347,7 @@ function calcWindow(win,P,FX){
   const aRules=type.accRules; const HTm=HT/100;
   const accs=[];let accRaw=0; const Wm=W/100,Hm=H/100,Fm=F/100;
   aRules.forEach(r=>{ if(!groups[r.g]) return; const a=accOf(r.a); let q;
-    if(r.n!=null) q=+r.n; else if(r.kwh!=null) q=r.kwh*Wm*Hm; else if(r.perim) q=r.perim*(2*Wm+2*Fm); else q=(+r.kw||0)*Wm+(+r.kh||0)*Hm+(+r.kht||0)*HTm+(+r.kf||0)*Fm;
+    if(r.hinge) q=(type.leaves||1)*(H<=(+r.hMax||100)?(+r.nLow||2):(+r.nHigh||3)); else if(r.ofP) q=(+r.k||1)*cuts.filter(x=>x.pid===r.ofP&&x.g==='base').reduce((s,x)=>s+x.tot,0)/100; else if(r.n!=null) q=+r.n; else if(r.kwh!=null) q=r.kwh*Wm*Hm; else if(r.perim) q=r.perim*(2*Wm+2*Fm); else q=(+r.kw||0)*Wm+(+r.kh||0)*Hm+(+r.kht||0)*HTm+(+r.kf||0)*Fm;
     if(!q) return; const cost=q*a.price; accRaw+=cost; accs.push({g:r.g,name:a.name,code:a.code,unit:a.unit,q,price:a.price,cost}); });
   const accCost=accRaw*(1+(+P.accWaste||0)/100);
   const area=W*HT/10000;
@@ -713,7 +716,9 @@ function vSettings(){
     const lOpt=sel=>Object.entries(LEN_OPTS).map(([k,t])=>`<option value="${k}" ${k===sel?'selected':''}>${t}</option>`).join('');
     const nm=id=>{const a=cat.acc.find(x=>x.id===id);return a?esc(a.name)+' <span class="hint num">'+esc(a.code)+'</span>':'?'};
     const accRow=(r,i,key)=>{let q;
-      if(r.n!=null) q=`<input type="number" step="any" value="${r.n}" oninput="setRule('${key}',${i},'n',+this.value)" style="width:80px"> قطعة`;
+      if(r.hinge) q=`<input type="number" step="any" value="${r.nLow}" oninput="setRule('${key}',${i},'nLow',+this.value)" style="width:50px"> لكل ضلفة لو ارتفاعها ≤ <input type="number" step="any" value="${r.hMax}" oninput="setRule('${key}',${i},'hMax',+this.value)" style="width:60px"> سم، وإلا <input type="number" step="any" value="${r.nHigh}" oninput="setRule('${key}',${i},'nHigh',+this.value)" style="width:50px">`;
+      else if(r.ofP){const pp=cat.profiles.find(x=>x.id===r.ofP);q=`<input type="number" step="any" value="${r.k}" oninput="setRule('${key}',${i},'k',+this.value)" style="width:55px"> × إجمالي أطوال ${esc(pp?pp.name+' '+pp.code:'')}`}
+      else if(r.n!=null) q=`<input type="number" step="any" value="${r.n}" oninput="setRule('${key}',${i},'n',+this.value)" style="width:80px"> قطعة`;
       else if(r.kwh!=null) q=`<input type="number" step="any" value="${r.kwh}" oninput="setRule('${key}',${i},'kwh',+this.value)" style="width:80px"> × العرض × الارتفاع`;
       else if(r.perim) q=`<input type="number" step="any" value="${r.perim}" oninput="setRule('${key}',${i},'perim',+this.value)" style="width:70px"> × محيط حلق الفيكس`;
       else q=['kw','kh','kht','kf'].map((k,ix)=>`<input type="number" step="any" value="${+r[k]||0}" oninput="setRule('${key}',${i},'${k}',+this.value)" style="width:58px"> × ${['العرض','ارتفاع الضلف','الارتفاع الكلي','الثابت'][ix]}`).join(' + ');
