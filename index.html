@@ -231,15 +231,14 @@ function hinged(o){ // o:{frame,sash,bead,mull,mullN,sas,fbead,leaves,inner,sash
   else {r.push(R('base',o.bead,'W',2),R('base',o.bead,'HT',2));}
   if(o.mull) r.push(R('base',o.mull,'H',o.mullN||1));
   if(o.sash){
-    r.push(R('mesh','q9',lv===2?'W/2':'W',lv===2?4:2),R('mesh','q9','H',lv===2?4:2));
     r.push(R('fix',o.sas,'W',1),R('fix',o.bead,'W',2),R('fix',o.bead,'F',2));
   }
   return r;
 }
 const LIN=(kw,kh,kht,kf)=>({kw,kh,kht:kht||0,kf:kf||0});
-const MESH_ACC=[A('mesh','b15',{kwh:1})];
+const MESH_ACC=[]; // السلك في المفصلي بيتشترى جاهز ويتضاف في الإضافات
 const FIX_ACC=[A('fix','b5',LIN(2,0,0,2))];
-const T=(id,name,leaves,rules,acc,opt)=>Object.assign({id,name,leaves,rules,accRules:acc,meshDef:true},opt||{});
+const T=(id,name,leaves,rules,acc,opt)=>Object.assign({id,name,leaves,rules,accRules:acc,meshDef:false},opt||{});
 const HNG={hinge:1,hMax:100,nLow:2,nHigh:3};   // مفصلات: 2 لكل ضلفة لو ارتفاعها متر أو أقل، 3 لو أكتر
 const SK=p=>({ofP:p,k:1});                      // كاوتش ضلفة = إجمالي أطوال قطاع الضلفة
 const FRAME_G=LIN(2,0,2);                       // كاوتش بطول الحلق = 2 عرض + 2 ارتفاع كلي
@@ -252,10 +251,6 @@ const DEF_SYS940={id:'940',name:'M940',types:[
    [A('base','b1',8),A('base','b4',FRAME_G),A('base','b5',SK('q4')),A('base','b6',FRAME_G),A('base','b11',1),A('base','b12',1),A('base','b9',4),A('base','b13',4),A('base','b14',1)].concat(MESH_ACC,FIX_ACC)),
  T('ht','مفصلي قلاب',1,hinged({frame:'q2',sash:'q3',bead:'q6',sas:'q8',leaves:1}),
    [A('base','b1',4),A('base','b2',4),A('base','b3',HNG),A('base','b4',FRAME_G),A('base','b5',SK('q3')),A('base','b6',FRAME_G),A('base','b9',4),A('base','b14',1)].concat(MESH_ACC,FIX_ACC)),
- T('d1','ضلفة داخل ضلفة – 1 ضلفة',1,hinged({frame:'q2',sash:'q3',bead:'q6',sas:'q8',leaves:1}),
-   [A('base','b1',4),A('base','b2',8),A('base','b3',HNG),A('base','b4',FRAME_G),A('base','b5',SK('q3')),A('base','b6',FRAME_G),A('base','b7',2),A('base','b8',2),A('base','b9',4),A('base','b14',1)].concat(MESH_ACC,FIX_ACC)),
- T('d2','ضلفة داخل ضلفة – 2 ضلفة',2,hinged({frame:'q2',sash:'q3',bead:'q6',mull:'q7',mullN:2,sas:'q8',leaves:2}),
-   [A('base','b1',4),A('base','b2',16),A('base','b3',HNG),A('base','b4',FRAME_G),A('base','b5',SK('q3')),A('base','b6',FRAME_G),A('base','b7',2),A('base','b8',2),A('base','b9',4),A('base','b10',1),A('base','b14',1)].concat(MESH_ACC,FIX_ACC)),
  T('fx','ثابت',0,hinged({frame:'q2',bead:'q6',leaves:0}),
    [A('base','b1',4),A('base','b4',FRAME_G),A('base','b5',FRAME_G),A('base','b6',FRAME_G),A('base','b9',4),A('base','b14',1)],{meshDef:false})
 ]};
@@ -298,12 +293,12 @@ function clone(o){return JSON.parse(JSON.stringify(o))}
 function freshCatalog(){return upgradeCat({profiles:clone(DEF_PROFILES),acc:clone(DEF_ACC),rules:clone(DEF_RULES),accRules:clone(DEF_ACC_RULES)})}
 function load(){
   try{DB=JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){DB=null}
-  if(!DB){DB={settings:clone(DEF_SETTINGS),catalog:freshCatalog(),projects:[],cur:null,seq:1,catVer:4}}
+  if(!DB){DB={settings:clone(DEF_SETTINGS),catalog:freshCatalog(),projects:[],cur:null,seq:1,catVer:5}}
   DB.settings=Object.assign(clone(DEF_SETTINGS),DB.settings||{});
   if(!DB.cur) DB.cur=newProject();
   migrate();
 }
-const CAT_VER=4;
+const CAT_VER=5;
 function patchCat(c){
   if(!c.rules) return;
   const acc=id=>c.acc.find(a=>a.id===id);
@@ -314,7 +309,7 @@ function patchCat(c){
   [[2,4],[3,6],[4,8]].forEach(([l,kh])=>{if(!c.accRules[l].some(r=>r.g==='base'&&r.a==='a27')) c.accRules[l].push({g:'base',a:'a27',kw:4,kh})});
 }
 function migrate(){
-  if((DB.catVer||1)<CAT_VER){[DB.catalog,DB.cur&&DB.cur.cat].forEach(c=>{if(!c)return;if((DB.catVer||1)<2)patchCat(c);upgradeCat(c);if((DB.catVer||1)<4){c.systems=c.systems.map(x=>x.id==='940'?clone(DEF_SYS940):x.id==='9400'?clone(DEF_SYS9400):x)}}); DB.catVer=CAT_VER; save();}
+  if((DB.catVer||1)<CAT_VER){[DB.catalog,DB.cur&&DB.cur.cat].forEach(c=>{if(!c)return;if((DB.catVer||1)<2)patchCat(c);upgradeCat(c);if((DB.catVer||1)<5){c.systems=c.systems.map(x=>x.id==='940'?clone(DEF_SYS940):x.id==='9400'?clone(DEF_SYS9400):x)}}); DB.catVer=CAT_VER; save();}
 }
 function save(){try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){toast('تعذر الحفظ على هذا الجهاز')}}
 function uid(){return Math.random().toString(36).slice(2,9)}
@@ -356,11 +351,11 @@ function calcWindow(win,P,FX){
   const gname=win.glassName||P.glassName||'';
   const glass=area*gp*(1+(+P.glassWaste||0)/100);
   const paint=weight*(+P.paintRate||0);
-  const extra=+win.extra||0;
+  const extra=+win.extra||0, extraName=win.extraName||'';
   const sub=alu+accCost+glass+paint+extra;
   const labor=sub*(+P.laborPct||0)/100;
   const unit=sub+labor, qty=+win.qty||1;
-  return {gp,gname,col,colCode:win.colorCode||P.colorCode||'',W,H,HT,F,cuts,raw,weight,accs,accRaw,accCost,area,alu,glass,paint,extra,sub,labor,unit,qty,total:unit*qty,perM:area?unit/area:0};
+  return {gp,gname,col,colCode:win.colorCode||P.colorCode||'',W,H,HT,F,cuts,raw,weight,accs,accRaw,accCost,area,alu,glass,paint,extra,extraName,sub,labor,unit,qty,total:unit*qty,perM:area?unit/area:0};
 }
 function calcProject(P){
   const O=P.aluMode==='bars'?optimizeProject(P):null, FX=O?O.factors:null;
@@ -374,7 +369,8 @@ function calcProject(P){
 function winTitle(w,i){return (w.name||('شباك '+(i+1)))}
 const cm=v=>(v===''||v==null||isNaN(+v))?'':r2(+v*100);
 const toM=v=>v===''?'':+v/100;
-function winDesc(w){return `${w.type||'شباك'} ${typeLabel(w)} – ${f2(cm(w.w))} × ${f2(cm(w.h))} سم`+(w.mesh?' – سلك':'')+(w.track?' – مجرى سلك إضافي':'')+(w.fix?` – ${isHinged(w)?'سؤاس، ثابت':'ثابت'} ${f2(cm(w.fixH))} سم`:'')}
+function win_extraName(c){return c.extraName||'إضافات'}
+function winDesc(w){return `${w.type||'شباك'} ${typeLabel(w)} – ${f2(cm(w.w))} × ${f2(cm(w.h))} سم`+(w.mesh&&!isHinged(w)?' – سلك':'')+(w.track?' – مجرى سلك إضافي':'')+(w.fix?` – ${isHinged(w)?'سؤاس، ثابت':'ثابت'} ${f2(cm(w.fixH))} سم`:'')}
 function sysUsed(P){return [...new Set(P.windows.map(w=>getST(P.cat,w).sys.name))].join(' + ')||'—'}
 function isHinged(w){return winST(w)[0]!=='14600'}
 
@@ -468,7 +464,7 @@ function vProj(){
 }
 function winCard(x,i){const w=x.win,c=x.c,P=DB.cur;
   const {sys,type}=getST(P.cat,w),frame=type.rules.find(r=>r.g==='base'&&r.len==='W'&&r.p!=='q1'&&r.p!=='p7'),fp=frame?P.cat.profiles.find(p=>p.id===frame.p):null;
-  const extras=[w.mesh?'سلك':'',w.track?'مجرى سلك إضافي':'',w.fix?(isHinged(w)?'سؤاس + ثابت':'جزء ثابت'):''].filter(Boolean).join(' + ');
+  const extras=[w.mesh&&!isHinged(w)?'سلك':'',w.track?'مجرى سلك إضافي':'',w.fix?(isHinged(w)?'سؤاس + ثابت':'جزء ثابت'):''].filter(Boolean).join(' + ');
   const row=(k,v)=>`<tr><td style="width:105px;color:var(--mut);font-weight:600">${k}</td><td>${v}</td></tr>`;
   return `<div class="win" style="display:block"><div class="row" style="justify-content:space-between;margin-bottom:6px"><div class="t"><span class="pill" style="background:var(--dark);color:#fff">${i+1}</span> ${esc(winTitle(w,i))}</div>
    <div class="row"><button class="btn ghost sm" onclick="editWin(${i})">تعديل</button><button class="btn ghost sm" onclick="dupWin(${i})">تكرار</button><button class="btn red sm" onclick="delWin(${i})">حذف</button></div></div>
@@ -478,6 +474,7 @@ function winCard(x,i){const w=x.win,c=x.c,P=DB.cur;
    ${row('القطاع',`${esc(sys.name)}${fp?' – حلق <span class="num">'+esc(fp.code)+'</span>':''}`)}
    ${row('اللون',c.col?esc(c.col)+(c.colCode?' – <span class="num">'+esc(c.colCode)+'</span>':''):'—')}
    ${row('الزجاج',c.gname?esc(c.gname)+' – '+f2(c.gp)+' ج/م²':(c.gp?f2(c.gp)+' ج/م²':'—'))}
+   ${c.extra?row('إضافة',`${esc(c.extraName||'إضافات')} – ${f0(c.extra)} ج`):''}
    ${row('الإكسسوارات',`<details><summary style="padding:0">${c.accs.length} صنف – ${f0(c.accCost)} ج</summary>${c.accs.map(a=>`${esc(a.name)} <span class="num">${f2(a.q)}</span>${a.unit==='m'?' م':a.unit==='m2'?' م²':''}`).join(' ، ')}</details>`)}
    ${row('السعر',`<b>${f0(c.unit)} ج</b> للوحدة${c.qty>1?` – الإجمالي <b>${f0(c.total)} ج</b>`:''}`)}</table></div>`}
 function totalsHtml(C){return `<h3>الإجمالي</h3><div class="kpi">
@@ -511,7 +508,8 @@ function drawWinForm(){
    <div><label>العرض (سم)</label><input type="number" step="any" inputmode="decimal" placeholder="مثال 200" value="${cm(w.w)}" oninput="EW.w=toM(this.value);upd()"></div>
    <div><label>الارتفاع الكلي (سم)</label><input type="number" step="any" inputmode="decimal" placeholder="مثال 150" value="${cm(w.h)}" oninput="EW.h=toM(this.value);upd()"></div>
    <div><label>العدد</label><input type="number" min="1" value="${esc(w.qty)}" oninput="EW.qty=+this.value||1;upd()"></div>
-   <div><label>إضافات (مقبض وغيره) جنيه</label><input type="number" step="any" value="${esc(w.extra)}" oninput="EW.extra=+this.value||0;upd()"></div>
+   <div><label>إضافة على الشباك (البيان)</label><input value="${esc(w.extraName)}" placeholder="مثال: ضلف سلك" oninput="EW.extraName=this.value"></div>
+   <div><label>سعر الإضافة (جنيه)</label><input type="number" step="any" value="${w.extra?esc(w.extra):''}" placeholder="0" oninput="EW.extra=+this.value||0;upd()"></div>
   </div>
   <div style="margin:12px 0;display:grid;gap:8px">
    ${hasMesh?`<label class="chk"><input type="checkbox" ${w.mesh?'checked':''} onchange="EW.mesh=this.checked;upd()"> ${h14&&type.leaves==3?'إضافة سلك (مجرى سلك + ضلف سلك)':h14?'ضلف سلك':'سلك'}</label>`:''}
@@ -568,7 +566,7 @@ function costTable(c){const P=DB.cur;return `<div class="tw"><table>
  <tr><td>الإكسسوار</td><td class="num">${f2(c.accCost)}</td></tr>
  <tr><td>الزجاج ${esc(c.gname)} (${f2(c.area)} م² × ${f2(c.gp)} + ${P.glassWaste}%)</td><td class="num">${f2(c.glass)}</td></tr>
  <tr><td>الدهان (${f2(c.weight)} كجم × ${f2(P.paintRate)})</td><td class="num">${f2(c.paint)}</td></tr>
- ${c.extra?`<tr><td>إضافات</td><td class="num">${f2(c.extra)}</td></tr>`:''}
+ ${c.extra?`<tr><td>${esc(win_extraName(c))}</td><td class="num">${f2(c.extra)}</td></tr>`:''}
  <tr><td>المصنعية ${f2(P.laborPct)}%</td><td class="num">${f2(c.labor)}</td></tr>
  <tr class="tot"><td>سعر الشباك</td><td class="num">${f2(c.unit)}</td></tr>
  <tr><td>متوسط سعر المتر</td><td class="num">${f2(c.perM)}</td></tr>
@@ -625,7 +623,7 @@ function quoteDoc(P){
   <div class="info"><div><b>السيد/ة:</b> ${esc(P.client)}</div><div><b>تليفون:</b> <span class="num">${esc(P.phone)}</span></div><div><b>العنوان:</b> ${esc(P.address)}</div><div><b>القطاع:</b> ${sysUsed(P)}</div>
   ${P.color||P.colorCode?`<div><b>اللون:</b> ${esc(P.color)}${P.colorCode?' – كود <span class="num">'+esc(P.colorCode)+'</span>':''}</div>`:''}${P.glassName?`<div><b>الزجاج:</b> ${esc(P.glassName)}</div>`:''}</div>
   <table><tr><th>م</th><th>البيان</th><th>المقاس (سم)</th><th>العدد</th><th>المساحة م²</th><th>سعر الوحدة</th><th>الإجمالي</th></tr>
-  ${C.res.map((x,i)=>`<tr><td>${i+1}</td><td>${esc(winTitle(x.win,i))}<br><span style="font-size:11px;color:#555">${esc(x.win.type||'شباك')} ${esc(typeLabel(x.win,P.cat))}${x.win.mesh?' + سلك':''}${x.win.fix?(isHinged(x.win)?' + سؤاس وثابت':' + جزء ثابت'):''}${x.win.color||x.win.colorCode?' – لون '+esc(x.win.color||P.color)+(x.win.colorCode?' ('+esc(x.win.colorCode)+')':''):''}${x.win.glassName?' – زجاج '+esc(x.win.glassName):''}</span></td><td class="num">${f2(cm(x.win.w))} × ${f2(cm(x.win.h))}</td><td>${x.c.qty}</td><td class="num">${f2(x.c.area*x.c.qty)}</td><td class="num">${f0(x.c.unit)}</td><td class="num">${f0(x.c.total)}</td></tr>`).join('')}
+  ${C.res.map((x,i)=>`<tr><td>${i+1}</td><td>${esc(winTitle(x.win,i))}<br><span style="font-size:11px;color:#555">${esc(x.win.type||'شباك')} ${esc(typeLabel(x.win,P.cat))}${x.win.mesh&&!isHinged(x.win)?' + سلك':''}${x.win.fix?(isHinged(x.win)?' + سؤاس وثابت':' + جزء ثابت'):''}${x.c.extra&&x.win.extraName?' + '+esc(x.win.extraName):''}${x.win.color||x.win.colorCode?' – لون '+esc(x.win.color||P.color)+(x.win.colorCode?' ('+esc(x.win.colorCode)+')':''):''}${x.win.glassName?' – زجاج '+esc(x.win.glassName):''}</span></td><td class="num">${f2(cm(x.win.w))} × ${f2(cm(x.win.h))}</td><td>${x.c.qty}</td><td class="num">${f2(x.c.area*x.c.qty)}</td><td class="num">${f0(x.c.unit)}</td><td class="num">${f0(x.c.total)}</td></tr>`).join('')}
   <tr class="tot"><td colspan="3">إجمالي الشبابيك</td><td>${C.count}</td><td class="num">${f2(C.area)}</td><td></td><td class="num">${f0(C.sum)}</td></tr>
   ${C.adds.length?`<tr class="grp"><td colspan="7">إضافات</td></tr>${C.adds.map((a,j)=>`<tr><td>${C.res.length+j+1}</td><td colspan="5">${esc(a.label||'إضافة')}</td><td class="num">${f0(+a.amount)}</td></tr>`).join('')}`:''}
   </table>
